@@ -54,8 +54,33 @@ async function run() {
         }
       });
       app.post("/api/founder/add_opportunity", async (request, response) => {
-        const opportunityData = request.body;
-        console.log(opportunityData);
+        try {
+          const founder_email = request.body[0].founder_email;
+          const startup = await startupCollection.findOne({founder_email});
+          if (!startup) {
+            return response.status(404).json({
+              success: false,
+              message: "No startup found for this founder!"
+            });
+          } else {
+            const startup_id = startup._id;
+            const opportunityData = request.body[1];
+            const data = {
+             startup_id,
+             ...opportunityData,
+            }
+            const result = await opportunityCollection.insertOne(data);
+            return response.status(201).json({
+              success: true,
+              message: "Opportunity successfully added!",
+            });
+          }
+        } catch (error) {
+          return response.status(500).json({
+            success: false,
+            message: error.message,
+          });
+        }
       });
   } finally {
     // await client.close();
