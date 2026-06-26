@@ -82,6 +82,29 @@ async function run() {
           });
         }
       });
+      app.get("/api/founder/my_startup", async (request, response) => {
+        try {
+          const founder_email = request.query.founder_email;
+          const result = await startupCollection.findOne({founder_email});
+          if (result) {
+            return response.status(200).json({
+              success: true,
+              data: result,
+            });
+          } else {
+            return response.status(404).json({
+              success: false,
+              message: "Data not found!",
+            });
+          }
+          console.log(result);
+        } catch (error) {
+          return response.status(500).json({
+            success: false,
+            message: error.message,
+          });
+        }
+      });
   } finally {
     // await client.close();
   }
