@@ -134,6 +134,45 @@ async function run() {
           });
         }       
       });
+      app.put("/api/founder/update_startup/:startupId", async (request, response) => {
+        try {
+          const {startupId} = request.params;
+        if (!ObjectId.isValid(startupId)) {
+          return response.status(400).json({
+            success: false,
+            message: "Invalid startup ID!",
+          });
+        }
+        const data = request.body;
+        const result = await startupCollection.updateOne(
+          {_id: new ObjectId(startupId)},
+          {
+            $set: data
+          }
+        );
+        if (result.matchedCount === 0) {
+          return response.status(404).json({
+            success: false,
+            message: "Startup not found!",
+          });
+        }
+        if (result.modifiedCount > 0) {
+          return response.status(200).json({
+            success: true,
+            message: "Updated successfully!",
+          });
+        }
+        return response.status(200).json({
+          success: true,
+          message: "No changes detected!",
+        });
+        } catch (error) {
+          return response.status(500).json({
+            success: false,
+            message: "Internal server error!",
+          });
+        }
+      });
   } finally {
     // await client.close();
   }
