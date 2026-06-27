@@ -114,18 +114,22 @@ async function run() {
               message: "Invalid startup ID!",
             });
           }
-          const result = await startupCollection.deleteOne({
-            _id: new ObjectId(startupId),
+          const startupObjectId = new ObjectId(startupId);
+          const result1 = await startupCollection.deleteOne({
+            _id: startupObjectId,
           });
-          if (result.deletedCount === 0) {
+          if (result1.deletedCount === 0) {
             return response.status(404).json({
               success: false,
               message: "Startup not found!",
             });
           }
+          const result2 = await opportunityCollection.deleteMany(
+            {startup_id: startupObjectId}
+          );
           return response.status(200).json({
             success: true,
-            message: "Startup deleted successfully!",
+            message: "Startup and related opportunities deleted successfully!",
           });
         } catch (error) {
           return response.status(500).json({
@@ -169,6 +173,27 @@ async function run() {
         } catch (error) {
           return response.status(500).json({
             success: false,
+            message: "Internal server error!",
+          });
+        }
+      });
+      app.get("/api/founder/manage_opportunities", async (request, response) => {
+        try {
+          const result1 = await opportunityCollection.find().toArray();
+          const result2 = await startupCollection.find().toArray();
+          const relatedStartup = result2[0];
+          const data = {
+            relatedStartup,
+            opportunities: result1,
+          }
+          return response.status(200).json({
+            success: true,
+            data: data,
+          });
+          
+        } catch (error) {
+          return response.status(500).json({
+            success: true,
             message: "Internal server error!",
           });
         }
