@@ -42,12 +42,12 @@ async function run() {
           createdAt: new Date(),
         };
         const result = await startupCollection.insertOne(data);
-        return response.status(201).json({
+        return response.json({
           success: true,
           message: "Startup created successfully!",
         });
       } catch (error) {
-        return response.status(500).json({
+        return response.json({
           success: false,
           message: "Internal server error!",
         });
@@ -58,7 +58,7 @@ async function run() {
         const founder_email = request.body[0].founder_email;
         const startup = await startupCollection.findOne({ founder_email });
         if (!startup) {
-          return response.status(404).json({
+          return response.json({
             success: false,
             message: "No startup found for this founder!",
           });
@@ -70,13 +70,13 @@ async function run() {
             ...opportunityData,
           };
           const result = await opportunityCollection.insertOne(data);
-          return response.status(201).json({
+          return response.json({
             success: true,
             message: "Opportunity successfully added!",
           });
         }
       } catch (error) {
-        return response.status(500).json({
+        return response.json({
           success: false,
           message: "Internal server error!",
         });
@@ -87,19 +87,19 @@ async function run() {
         const founder_email = request.query.founder_email;
         const result = await startupCollection.findOne({ founder_email });
         if (result) {
-          return response.status(200).json({
+          return response.json({
             success: true,
             data: result,
           });
         } else {
-          return response.status(200).json({
+          return response.json({
             success: false,
             message: "Data not found!",
             data: null,
           });
         }
       } catch (error) {
-        return response.status(500).json({
+        return response.json({
           success: false,
           message: "Internal server error!",
         });
@@ -111,7 +111,7 @@ async function run() {
         try {
           const { startupId } = request.params;
           if (!ObjectId.isValid(startupId)) {
-            return response.status(400).json({
+            return response.json({
               success: false,
               message: "Invalid startup ID!",
             });
@@ -121,7 +121,7 @@ async function run() {
             _id: startupObjectId,
           });
           if (result1.deletedCount === 0) {
-            return response.status(404).json({
+            return response.json({
               success: false,
               message: "Startup not found!",
             });
@@ -129,12 +129,12 @@ async function run() {
           const result2 = await opportunityCollection.deleteMany({
             startup_id: startupObjectId,
           });
-          return response.status(200).json({
+          return response.json({
             success: true,
             message: "Startup and related opportunities deleted successfully!",
           });
         } catch (error) {
-          return response.status(500).json({
+          return response.json({
             success: false,
             message: "Internal server error!",
           });
@@ -147,7 +147,7 @@ async function run() {
         try {
           const { startupId } = request.params;
           if (!ObjectId.isValid(startupId)) {
-            return response.status(400).json({
+            return response.json({
               success: false,
               message: "Invalid startup ID!",
             });
@@ -160,23 +160,23 @@ async function run() {
             },
           );
           if (result.matchedCount === 0) {
-            return response.status(404).json({
+            return response.json({
               success: false,
               message: "Startup not found!",
             });
           }
           if (result.modifiedCount > 0) {
-            return response.status(200).json({
+            return response.json({
               success: true,
               message: "Updated successfully!",
             });
           }
-          return response.status(200).json({
+          return response.json({
             success: true,
             message: "No changes detected!",
           });
         } catch (error) {
-          return response.status(500).json({
+          return response.json({
             success: false,
             message: "Internal server error!",
           });
@@ -185,24 +185,38 @@ async function run() {
     );
     app.get("/api/founder/manage_opportunities", async (request, response) => {
       try {
-        const result1 = await opportunityCollection.find().toArray();
-        if (result1.length === 0) {
-          return response.status(200).json({
-            data: result1,
+        const founder_email = request.query.founder_email;
+        const relatedStartup = await startupCollection.findOne({
+          founder_email,
+        });
+        if (!relatedStartup) {
+          return response.json({
+            success: false,
+            message: "Startup not found!",
           });
         }
-        const result2 = await startupCollection.find().toArray();
-        const relatedStartup = result2[0];
+        const { _id } = relatedStartup;
+        const result = await opportunityCollection
+          .find({
+            startup_id: _id,
+          })
+          .toArray();
+        if (result.length === 0) {
+          return response.json({
+            success: false,
+            message: "Opportunities not found!",
+          });
+        }
         const data = {
           relatedStartup,
-          opportunities: result1,
+          opportunities: result,
         };
-        return response.status(200).json({
+        return response.json({
           success: true,
           data: data,
         });
       } catch (error) {
-        return response.status(500).json({
+        return response.json({
           success: true,
           message: "Internal server error!",
         });
@@ -214,7 +228,7 @@ async function run() {
         try {
           const { opportunityId } = request.params;
           if (!ObjectId.isValid(opportunityId)) {
-            return response.status(400).json({
+            return response.json({
               success: false,
               message: "Invalid opportunity ID!",
             });
@@ -224,17 +238,17 @@ async function run() {
             _id: opportunityObjectId,
           });
           if (result.deletedCount === 0) {
-            return response.status(404).json({
+            return response.json({
               success: false,
               message: "Opportunity not found!",
             });
           }
-          return response.status(200).json({
+          return response.json({
             success: true,
             message: "Opportunity successfully deleted!",
           });
         } catch (error) {
-          return response.status(500).json({
+          return responses.json({
             success: false,
             message: "Internal server error!",
           });
@@ -247,7 +261,7 @@ async function run() {
         try {
           const { opportunityId } = request.params;
           if (!ObjectId.isValid(opportunityId)) {
-            return response.status(400).json({
+            return response.json({
               success: false,
               message: "Invalid opportunity ID!",
             });
@@ -255,7 +269,7 @@ async function run() {
           const founder_email = request.body[0].founder_email;
           const startup = await startupCollection.findOne({ founder_email });
           if (!startup) {
-            return response.status(404).json({
+            return response.json({
               success: false,
               message: "No startup found for this founder!",
             });
@@ -273,13 +287,13 @@ async function run() {
                 $set: data,
               },
             );
-            return response.status(201).json({
+            return response.json({
               success: true,
               message: "Opportunity successfully updated!",
             });
           }
         } catch (error) {
-          return response.status(500).json({
+          return response.json({
             success: false,
             message: "Internal server error!",
           });
