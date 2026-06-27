@@ -1,6 +1,6 @@
 const dotenv = require("dotenv");
 dotenv.config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 
@@ -49,7 +49,7 @@ async function run() {
         } catch (error) {
           return response.status(500).json({
             success: false,
-            message: error.message,
+            message: "Internal server error!",
           });
         }
       });
@@ -78,7 +78,7 @@ async function run() {
         } catch (error) {
           return response.status(500).json({
             success: false,
-            message: error.message,
+            message: "Internal server error!",
           });
         }
       });
@@ -92,18 +92,47 @@ async function run() {
               data: result,
             });
           } else {
-            return response.status(404).json({
+            return response.status(200).json({
               success: false,
               message: "Data not found!",
+              data: null,
             });
           }
-          console.log(result);
         } catch (error) {
           return response.status(500).json({
             success: false,
-            message: error.message,
+            message: "Internal server error!",
           });
         }
+      });
+      app.delete("/api/founder/delete_startup/:startupId", async (request, response) => {
+        try {
+          const {startupId} = request.params;
+          if (!ObjectId.isValid(startupId)) {
+            return response.status(400).json({
+              success: false,
+              message: "Invalid startup ID!",
+            });
+          }
+          const result = await startupCollection.deleteOne({
+            _id: new ObjectId(startupId),
+          });
+          if (result.deletedCount === 0) {
+            return response.status(404).json({
+              success: false,
+              message: "Startup not found!",
+            });
+          }
+          return response.status(200).json({
+            success: true,
+            message: "Startup deleted successfully!",
+          });
+        } catch (error) {
+          return response.status(500).json({
+            success: false,
+            message: "Internal server error!",
+          });
+        }       
       });
   } finally {
     // await client.close();
