@@ -32,9 +32,82 @@ async function run() {
     console.log(`Server successfully connected with mongodb!`);
     const startupCollection = database.collection("startups");
     const opportunityCollection = database.collection("opportunities");
+    app.get("/api/featured_startups", async (request, response) => {
+      try {
+        const result = await startupCollection.find().limit(4).toArray();
+        return response.json({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
+    app.get("/api/all_startups", async (request, response) => {
+      try {
+        const all_startups = await startupCollection.find().toArray();
+        if (all_startups.length === 0) {
+          return response.json({
+            success: true,
+            message: "No startup found!",
+            data: all_startups,
+          });
+        }
+        return response.json({
+          success: true,
+          data: all_startups,
+        });
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
+    app.get("/api/startup_details/:startup_id", async (request, response) => {
+      try {
+        const {startup_id} = request.params;
+        if (!ObjectId.isValid(startup_id)) {
+          return response.json({
+            success: false,
+            message: "Invalid startup ID!",
+          });
+        }
+        const startupObjectId = new ObjectId(startup_id);
+        const result = await startupCollection.findOne({
+          _id: startupObjectId,
+        });
+        if (!result) {
+          return response.json({
+            success: false,
+            message: "Start not found!",
+          });
+        }
+        return response.json({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
     // CRUD WITH FOUNDER
     app.post("/api/founder/add_startup", async (request, response) => {
       try {
+        const {founder_email} = request.query;
+        const isExist = await startupCollection.findOne({founder_email});
+        if (isExist) {
+          return response.json({
+            success: false,
+            message: "Already created a startup through this email!",
+          });
+        }
         const startupFormData = request.body;
         const data = {
           ...startupFormData,
