@@ -69,7 +69,7 @@ async function run() {
     });
     app.get("/api/startup_details/:startup_id", async (request, response) => {
       try {
-        const {startup_id} = request.params;
+        const { startup_id } = request.params;
         if (!ObjectId.isValid(startup_id)) {
           return response.json({
             success: false,
@@ -97,11 +97,100 @@ async function run() {
         });
       }
     });
+    app.get("/api/featured_opportunities", async (request, response) => {
+      try {
+        const result = await opportunityCollection
+          .aggregate([
+            {
+              $lookup: {
+                from: "startups",
+                localField: "startup_id",
+                foreignField: "_id",
+                as: "startup",
+              },
+            },
+            {
+              $unwind: "$startup",
+            },
+            {
+              $project: {
+                _id: 1,
+                startup_id: 1,
+                role_title: 1,
+                required_skills: 1,
+                work_type: 1,
+                commitment_levels: 1,
+                deadline: 1,
+
+                startup_name: "$startup.startup_name",
+                imageUrl: "$startup.imageUrl",
+                industry: "$startup.industry",
+              },
+            },
+            {
+              $limit: 4,
+            },
+          ])
+          .toArray();
+        return response.json({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
+    app.get("/api/all_opportunities", async (request, response) => {
+      try {
+        const result = await opportunityCollection
+          .aggregate([
+            {
+              $lookup: {
+                from: "startups",
+                localField: "startup_id",
+                foreignField: "_id",
+                as: "startup",
+              },
+            },
+            {
+              $unwind: "$startup",
+            },
+            {
+              $project: {
+                _id: 1,
+                startup_id: 1,
+                role_title: 1,
+                required_skills: 1,
+                work_type: 1,
+                commitment_levels: 1,
+                deadline: 1,
+
+                startup_name: "$startup.startup_name",
+                imageUrl: "$startup.imageUrl",
+                industry: "$startup.industry",
+              },
+            },
+          ])
+          .toArray();
+          return response.json({
+            success: false,
+            data: result,
+          });
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
     // CRUD WITH FOUNDER
     app.post("/api/founder/add_startup", async (request, response) => {
       try {
-        const {founder_email} = request.query;
-        const isExist = await startupCollection.findOne({founder_email});
+        const { founder_email } = request.query;
+        const isExist = await startupCollection.findOne({ founder_email });
         if (isExist) {
           return response.json({
             success: false,
