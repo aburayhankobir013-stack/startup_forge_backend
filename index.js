@@ -233,16 +233,16 @@ async function run() {
               },
             ])
             .toArray();
-            if (!result) {
-              return response.json({
-                success: false,
-                message: "Opportunity not found!",
-              });
-            }
+          if (!result) {
             return response.json({
-              success: true,
-              data: result,
+              success: false,
+              message: "Opportunity not found!",
             });
+          }
+          return response.json({
+            success: true,
+            data: result,
+          });
         } catch (error) {
           return response.json({
             success: false,
@@ -254,7 +254,14 @@ async function run() {
     // Application api
     app.post("/api/apply_opportunity", async (request, response) => {
       try {
-        const {applicantEmail, portfolioLink, motivationalMessage, opportunity_id, status, applied_at} = request.body;
+        const {
+          applicantEmail,
+          portfolioLink,
+          motivationalMessage,
+          opportunity_id,
+          status,
+          applied_at,
+        } = request.body;
         const applicationData = {
           opportunity_id: new ObjectId(opportunity_id),
           applicantEmail,
@@ -262,8 +269,8 @@ async function run() {
           motivationalMessage,
           status,
           applied_at,
-        }
-        
+        };
+
         const isExist = await applicationCollection.findOne({
           opportunity_id: new ObjectId(opportunity_id),
           applicantEmail: applicantEmail,
@@ -280,6 +287,70 @@ async function run() {
             message: "Already applied for this application!",
           });
         }
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
+    app.get("/api/founder/all_applications", async (request, response) => {
+      try {
+        const founderEmail = request.query.founderEmail;
+
+        const result = await startupCollection
+          .aggregate([
+            {
+              $match: {
+                founder_email: founderEmail,
+              },
+            },
+
+            {
+              $lookup: {
+                from: "opportunities",
+                localField: "_id",
+                foreignField: "startup_id",
+                as: "opportunities",
+              },
+            },
+
+            { $unwind: "$opportunities" },
+
+            {
+              $lookup: {
+                from: "applications",
+                localField: "opportunities._id",
+                foreignField: "opportunity_id",
+                as: "applications",
+              },
+            },
+
+            { $unwind: "$applications" },
+
+            {
+              $project: {
+                _id: 0,
+
+                applicationId: "$applications._id",
+
+                startup_name: "$startup_name",
+
+                role_title: "$opportunities.role_title",
+
+                applicant_email: "$applications.applicantEmail",
+
+                status: "$applications.status",
+
+                appliedAt: "$applications.applied_at",
+              },
+            },
+          ])
+          .toArray();
+        return response.json({
+          success: true,
+          data: result,
+        });
       } catch (error) {
         return response.json({
           success: false,
