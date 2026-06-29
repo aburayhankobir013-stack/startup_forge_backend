@@ -5,7 +5,7 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 app.listen(PORT, () => {
@@ -27,9 +27,9 @@ const client = new MongoClient(MONGODB_URI, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const database = await client.db("startup_forge");
-    console.log(`Server successfully connected with mongodb!`);
+    // console.log(`Server successfully connected with mongodb!`);
     const startupCollection = database.collection("startups");
     const opportunityCollection = database.collection("opportunities");
     const applicationCollection = database.collection("applications");
