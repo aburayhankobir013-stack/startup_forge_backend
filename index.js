@@ -32,6 +32,7 @@ async function run() {
     console.log(`Server successfully connected with mongodb!`);
     const startupCollection = database.collection("startups");
     const opportunityCollection = database.collection("opportunities");
+    const applicationCollection = database.collection("applications");
     app.get("/api/featured_startups", async (request, response) => {
       try {
         const result = await startupCollection.find().limit(4).toArray();
@@ -250,6 +251,42 @@ async function run() {
         }
       },
     );
+    // Application api
+    app.post("/api/apply_opportunity", async (request, response) => {
+      try {
+        const {applicantEmail, portfolioLink, motivationalMessage, opportunity_id, status, applied_at} = request.body;
+        const applicationData = {
+          opportunity_id: new ObjectId(opportunity_id),
+          applicantEmail,
+          portfolioLink,
+          motivationalMessage,
+          status,
+          applied_at,
+        }
+        
+        const isExist = await applicationCollection.findOne({
+          opportunity_id: new ObjectId(opportunity_id),
+          applicantEmail: applicantEmail,
+        });
+        if (!isExist) {
+          const result = await applicationCollection.insertOne(applicationData);
+          return response.json({
+            success: true,
+            message: "Application created successfully!",
+          });
+        } else {
+          return response.json({
+            success: false,
+            message: "Already applied for this application!",
+          });
+        }
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
     // CRUD WITH FOUNDER
     app.post("/api/founder/add_startup", async (request, response) => {
       try {
