@@ -175,10 +175,10 @@ async function run() {
             },
           ])
           .toArray();
-          return response.json({
-            success: false,
-            data: result,
-          });
+        return response.json({
+          success: false,
+          data: result,
+        });
       } catch (error) {
         return response.json({
           success: false,
@@ -186,6 +186,70 @@ async function run() {
         });
       }
     });
+    app.get(
+      "/api/opportunity_details/:opportunityId",
+      async (request, response) => {
+        try {
+          const { opportunityId } = request.params;
+          if (!ObjectId.isValid(opportunityId)) {
+            return response.json({
+              success: false,
+              message: "Invalid opportunity ID!",
+            });
+          }
+          const result = await opportunityCollection
+            .aggregate([
+              {
+                $match: {
+                  _id: new ObjectId(opportunityId),
+                },
+              },
+              {
+                $lookup: {
+                  from: "startups",
+                  localField: "startup_id",
+                  foreignField: "_id",
+                  as: "startup",
+                },
+              },
+              {
+                $unwind: "$startup",
+              },
+              {
+                $project: {
+                  _id: 1,
+                  startup_id: 1,
+                  role_title: 1,
+                  required_skills: 1,
+                  work_type: 1,
+                  commitment_levels: 1,
+                  deadline: 1,
+
+                  startup_name: "$startup.startup_name",
+                  imageUrl: "$startup.imageUrl",
+                  industry: "$startup.industry",
+                },
+              },
+            ])
+            .toArray();
+            if (!result) {
+              return response.json({
+                success: false,
+                message: "Opportunity not found!",
+              });
+            }
+            return response.json({
+              success: true,
+              data: result,
+            });
+        } catch (error) {
+          return response.json({
+            success: false,
+            message: "Internal server error!",
+          });
+        }
+      },
+    );
     // CRUD WITH FOUNDER
     app.post("/api/founder/add_startup", async (request, response) => {
       try {
