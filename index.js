@@ -392,7 +392,7 @@ async function run() {
     );
     app.get("/api/founder/overview", async (request, response) => {
       try {
-        const {founderEmail} = request.query;
+        const { founderEmail } = request.query;
         const result = await startupCollection
           .aggregate([
             {
@@ -486,7 +486,59 @@ async function run() {
             },
           ])
           .toArray();
-          response.json({
+        response.json({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
+    // CRUD WITH COLLABORATOR
+    app.get("/api/collaborator/overview", async (request, response) => {
+      try {
+        const {applicantEmail} = request.query;
+        const result = await applicationCollection
+          .aggregate([
+            {
+              $match: {
+                applicantEmail: applicantEmail,
+              },
+            },
+
+            {
+              $group: {
+                _id: null,
+
+                totalApplications: {
+                  $sum: 1,
+                },
+
+                acceptedApplications: {
+                  $sum: {
+                    $cond: [{ $eq: ["$status", "accepted"] }, 1, 0],
+                  },
+                },
+
+                rejectedApplications: {
+                  $sum: {
+                    $cond: [{ $eq: ["$status", "rejected"] }, 1, 0],
+                  },
+                },
+
+                pendingApplications: {
+                  $sum: {
+                    $cond: [{ $eq: ["$status", "pending"] }, 1, 0],
+                  },
+                },
+              },
+            },
+          ])
+          .toArray();
+          return response.json({
             success: true,
             data: result,
           });
