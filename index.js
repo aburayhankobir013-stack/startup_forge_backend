@@ -629,7 +629,7 @@ async function run() {
       async (request, response) => {
         try {
           const { userId } = request.params;
-          const {isBlocked} = request.body;
+          const { isBlocked } = request.body;
           if (!ObjectId.isValid(userId)) {
             return response.json({
               success: false,
@@ -643,7 +643,7 @@ async function run() {
             {
               $set: {
                 isBlocked,
-              }
+              },
             },
           );
           return response.json({
@@ -672,32 +672,63 @@ async function run() {
         });
       }
     });
-    app.patch("/api/admin/update_startup_status/:startupId", async (request, response) => {
-      try {
-        const {startupId} = request.params;
-        const { status } = request.body;
-        if (!ObjectId.isValid(startupId)) {
+    app.patch(
+      "/api/admin/update_startup_status/:startupId",
+      async (request, response) => {
+        try {
+          const { startupId } = request.params;
+          const { status } = request.body;
+          if (!ObjectId.isValid(startupId)) {
+            return response.json({
+              success: false,
+              message: "Invalid startup ID!",
+            });
+          }
+          const result = await startupCollection.updateOne(
+            {
+              _id: new ObjectId(startupId),
+            },
+            {
+              $set: {
+                status,
+              },
+            },
+          );
+          return response.json({
+            success: true,
+            message: "Startup status successfully updated!",
+          });
+        } catch (error) {
           return response.json({
             success: false,
-            message: "Invalid startup ID!",
+            message: "Internal server error!",
           });
         }
-        const result = await startupCollection.updateOne(
-          {
-            _id: new ObjectId(startupId),
-          },
-          {
-            $set: {
-              status
-            }
-          }
-        );
+      },
+    );
+    app.get("/api/admin/overview", async (request, response) => {
+      try {
+        const totalUsers = await userCollection.countDocuments({
+          role: { $ne: "admin" },
+        });
+
+        const totalStartups = await startupCollection.countDocuments();
+
+        const totalOpportunities = await opportunityCollection.countDocuments();
+
+        const totalApplications = await applicationCollection.countDocuments();
+
         return response.json({
           success: true,
-          message: "Startup status successfully updated!",
+          data: {
+            totalUsers,
+            totalStartups,
+            totalOpportunities,
+            totalApplications,
+          },
         });
       } catch (error) {
-        return response.json({
+        response.json({
           success: false,
           message: "Internal server error!",
         });
