@@ -500,7 +500,7 @@ async function run() {
     // CRUD WITH COLLABORATOR
     app.get("/api/collaborator/overview", async (request, response) => {
       try {
-        const {applicantEmail} = request.query;
+        const { applicantEmail } = request.query;
         const result = await applicationCollection
           .aggregate([
             {
@@ -538,9 +538,64 @@ async function run() {
             },
           ])
           .toArray();
+        return response.json({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
+    app.get("/api/collaborator/my_applications", async (request, response) => {
+      try {
+        const { applicantEmail } = request.query;
+        const result = await applicationCollection
+          .aggregate([
+            {
+              $match: {
+                applicantEmail: applicantEmail,
+              },
+            },
+            {
+              $lookup: {
+                from: "opportunities",
+                localField: "opportunity_id",
+                foreignField: "_id",
+                as: "opportunity",
+              },
+            },
+            {
+              $unwind: "$opportunity",
+            },
+            {
+              $lookup: {
+                from: "startups",
+                localField: "opportunity.startup_id",
+                foreignField: "_id",
+                as: "startup",
+              },
+            },
+            {
+              $unwind: "$startup",
+            },
+            {
+              $project: {
+                _id: 1,
+                status: 1,
+                applied_at: 1,
+
+                opportunity_name: "$opportunity.role_title",
+                startup_name: "$startup.startup_name",
+              },
+            },
+          ])
+          .toArray();
           return response.json({
             success: true,
-            data: result,
+            data: [],
           });
       } catch (error) {
         return response.json({
