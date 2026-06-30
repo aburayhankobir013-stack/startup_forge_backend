@@ -358,6 +358,36 @@ async function run() {
         });
       }
     });
+    app.patch("/api/founder/update_application/:application_id", async (request, response) => {
+      try {
+        const {application_id} = request.params;
+        const {status} = request.body;
+        if (!ObjectId.isValid(application_id)) {
+          return response.json({
+            success: false,
+            message: "Invalid application ID!",
+          });
+        }
+        const result = await applicationCollection.updateOne(
+          {_id: new ObjectId(application_id)},
+          {
+            $set: {
+              status,
+            },
+          }
+        );
+        return response.json({
+          success: true,
+          message: "Status updated successfully",
+        });
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+      
+    });
     // CRUD WITH FOUNDER
     app.post("/api/founder/add_startup", async (request, response) => {
       try {
