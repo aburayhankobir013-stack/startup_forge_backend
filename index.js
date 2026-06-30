@@ -658,6 +658,51 @@ async function run() {
         }
       },
     );
+    app.get("/api/admin/manage_startups", async (request, response) => {
+      try {
+        const result = await startupCollection.find().toArray();
+        return response.json({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
+    app.patch("/api/admin/update_startup_status/:startupId", async (request, response) => {
+      try {
+        const {startupId} = request.params;
+        const { status } = request.body;
+        if (!ObjectId.isValid(startupId)) {
+          return response.json({
+            success: false,
+            message: "Invalid startup ID!",
+          });
+        }
+        const result = await startupCollection.updateOne(
+          {
+            _id: new ObjectId(startupId),
+          },
+          {
+            $set: {
+              status
+            }
+          }
+        );
+        return response.json({
+          success: true,
+          message: "Startup status successfully updated!",
+        });
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
     // CRUD WITH FOUNDER
     app.post("/api/founder/add_startup", async (request, response) => {
       try {
