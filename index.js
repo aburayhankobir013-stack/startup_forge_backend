@@ -358,35 +358,144 @@ async function run() {
         });
       }
     });
-    app.patch("/api/founder/update_application/:application_id", async (request, response) => {
-      try {
-        const {application_id} = request.params;
-        const {status} = request.body;
-        if (!ObjectId.isValid(application_id)) {
+    app.patch(
+      "/api/founder/update_application/:application_id",
+      async (request, response) => {
+        try {
+          const { application_id } = request.params;
+          const { status } = request.body;
+          if (!ObjectId.isValid(application_id)) {
+            return response.json({
+              success: false,
+              message: "Invalid application ID!",
+            });
+          }
+          const result = await applicationCollection.updateOne(
+            { _id: new ObjectId(application_id) },
+            {
+              $set: {
+                status,
+              },
+            },
+          );
+          return response.json({
+            success: true,
+            message: "Status updated successfully",
+          });
+        } catch (error) {
           return response.json({
             success: false,
-            message: "Invalid application ID!",
+            message: "Internal server error!",
           });
         }
-        const result = await applicationCollection.updateOne(
-          {_id: new ObjectId(application_id)},
-          {
-            $set: {
-              status,
+      },
+    );
+    app.get("/api/founder/overview", async (request, response) => {
+      try {
+        const {founderEmail} = request.query;
+        const result = await startupCollection
+          .aggregate([
+            {
+              $match: {
+                founder_email: founderEmail,
+              },
             },
-          }
-        );
-        return response.json({
-          success: true,
-          message: "Status updated successfully",
-        });
+
+            {
+              $lookup: {
+                from: "opportunities",
+                localField: "_id",
+                foreignField: "startup_id",
+                as: "opportunities",
+              },
+            },
+
+            {
+              $unwind: "$opportunities",
+            },
+
+            {
+              $lookup: {
+                from: "applications",
+                localField: "opportunities._id",
+                foreignField: "opportunity_id",
+                as: "applications",
+              },
+            },
+
+            {
+              $unwind: {
+                path: "$applications",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+
+            {
+              $group: {
+                _id: null,
+
+                totalOpportunities: {
+                  $addToSet: "$opportunities._id",
+                },
+
+                totalApplications: {
+                  $sum: {
+                    $cond: [{ $ifNull: ["$applications._id", false] }, 1, 0],
+                  },
+                },
+
+                acceptedApplications: {
+                  $sum: {
+                    $cond: [
+                      { $eq: ["$applications.status", "accepted"] },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+
+                rejectedApplications: {
+                  $sum: {
+                    $cond: [
+                      { $eq: ["$applications.status", "rejected"] },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+
+                pendingApplications: {
+                  $sum: {
+                    $cond: [{ $eq: ["$applications.status", "pending"] }, 1, 0],
+                  },
+                },
+              },
+            },
+
+            {
+              $project: {
+                _id: 0,
+                totalOpportunities: {
+                  $size: "$totalOpportunities",
+                },
+                totalApplications: 1,
+                acceptedApplications: 1,
+                rejectedApplications: 1,
+                pendingApplications: 1,
+              },
+            },
+          ])
+          .toArray();
+          response.json({
+            success: true,
+            data: result,
+          });
       } catch (error) {
         return response.json({
           success: false,
           message: "Internal server error!",
         });
       }
-      
     });
     // CRUD WITH FOUNDER
     app.post("/api/founder/add_startup", async (request, response) => {
