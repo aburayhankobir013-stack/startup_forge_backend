@@ -33,6 +33,7 @@ async function run() {
     const startupCollection = database.collection("startups");
     const opportunityCollection = database.collection("opportunities");
     const applicationCollection = database.collection("applications");
+    const userCollection = database.collection("user");
     app.get("/api/featured_startups", async (request, response) => {
       try {
         const result = await startupCollection.find().limit(4).toArray();
@@ -593,10 +594,10 @@ async function run() {
             },
           ])
           .toArray();
-          return response.json({
-            success: true,
-            data: result,
-          });
+        return response.json({
+          success: true,
+          data: result,
+        });
       } catch (error) {
         return response.json({
           success: false,
@@ -604,6 +605,59 @@ async function run() {
         });
       }
     });
+    // CRUD WITH ADMIN
+    app.get("/api/admin/manage_users", async (request, response) => {
+      try {
+        const result = await userCollection
+          .find({
+            role: { $ne: "admin" },
+          })
+          .toArray();
+        return response.json({
+          success: true,
+          data: result,
+        });
+      } catch (error) {
+        return response.json({
+          success: false,
+          message: "Internal server error!",
+        });
+      }
+    });
+    app.patch(
+      "/api/admin/update_user_status/:userId",
+      async (request, response) => {
+        try {
+          const { userId } = request.params;
+          const {isBlocked} = request.body;
+          if (!ObjectId.isValid(userId)) {
+            return response.json({
+              success: false,
+              message: "Invalid user ID!",
+            });
+          }
+          const result = await userCollection.updateOne(
+            {
+              _id: new ObjectId(userId),
+            },
+            {
+              $set: {
+                isBlocked,
+              }
+            },
+          );
+          return response.json({
+            success: true,
+            message: "User status successfully updated!",
+          });
+        } catch (error) {
+          return response.json({
+            success: false,
+            message: "Internal server error!",
+          });
+        }
+      },
+    );
     // CRUD WITH FOUNDER
     app.post("/api/founder/add_startup", async (request, response) => {
       try {
