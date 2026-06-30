@@ -595,7 +595,7 @@ async function run() {
           .toArray();
           return response.json({
             success: true,
-            data: [],
+            data: result,
           });
       } catch (error) {
         return response.json({
